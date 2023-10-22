@@ -6,9 +6,9 @@ import matplotlib.ticker as ticker
 import seaborn as sns
 import neo4j
 from neo4j import GraphDatabase
-from neo4j.exceptions import ServiceUnavailable
+# from neo4j.exceptions import ServiceUnavailable
 
-from py2neo import Graph
+# from py2neo import Graph
 import os
 from dotenv import load_dotenv
 import plotly.express as px
