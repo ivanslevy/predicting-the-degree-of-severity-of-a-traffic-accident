@@ -191,7 +191,7 @@ def var_ab_nan(data):
     st.sidebar.header("Visualisations")
 
     # st.header("Importez un fichier CSV")
-    data_file = "C:/Users/gilbe/OneDrive/Bureau/chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
+    data_file = "/chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
     # data_file = st.file_uploader("Fichier CSV", type=["csv"])
 
     if data_file is not None:
@@ -369,7 +369,7 @@ def var_ab_nan(data):
     
 def var_ab_nan2(data):
 
-    data_file = "C:/Users/gilbe/OneDrive/Bureau/chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
+    data_file = "/chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
     
     if data_file is not None:
         data = pd.read_excel(data_file,sheet_name="Sheet1")
@@ -437,7 +437,7 @@ def var_interet(data):
     st.sidebar.header("Visualisations")
 
     # st.header("Importez un fichier CSV")
-    data_file = "C:/Users/gilbe/OneDrive/Bureau/chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
+    data_file = "/chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
     # data_file = st.file_uploader("Fichier CSV", type=["csv"])
 
     if data_file is not None:
@@ -1378,7 +1378,7 @@ def model(data):
 
 def corr_mtx(data) :
     # st.header("Importez un fichier EXCEL :")
-    # data_file = "C:/Users/gilbe/OneDrive/Bureau/chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
+    # data_file = "/chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
     data_file = st.file_uploader("Fichier EXCEL", type=["xlsx"])
 
     if data_file is not None:
