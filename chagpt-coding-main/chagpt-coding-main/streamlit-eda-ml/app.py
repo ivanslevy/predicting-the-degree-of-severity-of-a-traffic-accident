@@ -2,11 +2,13 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+# import matplotlib as plt
+
 import matplotlib.ticker as ticker
 import seaborn as sns
 import neo4j
 from neo4j import GraphDatabase
-# from neo4j.exceptions import ServiceUnavailable
+from neo4j.exceptions import ServiceUnavailable
 
 # from py2neo import Graph
 import os
@@ -140,14 +142,124 @@ def trace(data):
         selected_plot = st.sidebar.selectbox("Choisissez un type de tracé :", plot_options)
 
         if selected_plot == "Bar plot":
-            x_axis = st.sidebar.selectbox("Choisissez l'axe x :", data.columns)
-            y_axis = st.sidebar.selectbox("Choisissez l'axe y :", data.columns)
-            st.write("Bar plot :")
-            fig, ax = plt.subplots()
-            sns.barplot(x=data[x_axis], y=data[y_axis], ax=ax)
-            ax.set_xticklabels(ax.get_xticklabels(), rotation=90, ha="right")
-            ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True, nbins=100))
-            st.pyplot(fig)
+
+            tabs = st.selectbox("Navigation :", ("Histogramme empilé", "Histogramme groupé", "Courbe avec marques","Courbe sans marques","Histogramme empilé 100%"), index=0)
+
+            # Afficher le contenu de chaque onglet
+            if tabs == "Histogramme empilé":
+                selected_variable1 = st.sidebar.selectbox("Choisissez une variable x :", data.columns)
+                selected_variable2 = st.sidebar.selectbox("Choisissez une variable y :", data.columns)
+                selected_elements = st.sidebar.multiselect("Selectionnez les modalités à afficher :", data[selected_variable2].unique())
+
+                filtered_data = data[data[selected_variable2].isin(selected_elements)]
+                nom_colonne = selected_variable2
+                bins = st.sidebar.slider("Number of bins :", 5, 100, 20)
+                st.write("Histogramme empilé :")
+                fig, ax = plt.subplots()
+                sns.histplot(filtered_data, x=selected_variable1, hue = nom_colonne ,bins=bins, ax=ax)
+                for rect in ax.patches:
+                        height = rect.get_height()
+                        if height > 0:
+                            ax.annotate(f"{height:.0f}", xy=(rect.get_x() + rect.get_width() / 2, height),
+                            xytext=(0, 5), textcoords="offset points", ha="center", va="bottom")
+
+                ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True, nbins=10))
+                plt.xticks(rotation=90)
+                st.pyplot(fig)
+
+            if tabs == "Histogramme groupé":
+                selected_variable = st.sidebar.selectbox("Choisissez une variable x :", data.columns)
+                selected_variable2 = st.sidebar.selectbox("Choisissez une variable y :", data.columns)
+                selected_elements = st.sidebar.multiselect("Selectionnez les modalités à afficher :", data[selected_variable2].unique())
+
+                filtered_data = data[data[selected_variable2].isin(selected_elements)]
+                nom_colonne = selected_variable2
+
+                bins = st.sidebar.slider("Number of bins :", 5, 100, 20)
+                st.write("Histogramme groupé :")
+                fig, ax = plt.subplots()
+                sns.histplot(filtered_data, x=selected_variable, hue = nom_colonne, bins = bins, ax=ax, multiple='dodge')
+                for rect in ax.patches:
+                        height = rect.get_height()
+                        if height > 0:
+                            ax.annotate(f"{height:.0f}", xy=(rect.get_x() + rect.get_width() / 2, height),
+                            xytext=(0, 5), textcoords="offset points", ha="center", va="bottom")
+
+                ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True, nbins=10))
+                plt.xticks(rotation=90)
+                st.pyplot(fig)
+
+            if tabs == "Courbe avec marques":
+                selected_variable1 = st.sidebar.selectbox("Choisissez une variable x :", data.columns)
+                selected_variable2 = st.sidebar.selectbox("Choisissez une variable y :", data.columns)
+                selected_elements = st.sidebar.multiselect("Selectionnez les modalités à afficher :", data[selected_variable2].unique())
+
+                filtered_data = data[data[selected_variable2].isin(selected_elements)]
+                nom_colonne = selected_variable2
+                st.write("Courbe avec marques :")
+
+                fig, ax = plt.subplots()
+
+                counts_df = filtered_data.groupby([nom_colonne , selected_variable1]).size().unstack().fillna(0).astype(int)
+                counts_df2 = counts_df.T.reset_index()
+
+                ax.plot(counts_df2[selected_variable1], counts_df2.iloc[:,1:], marker='o')
+                ax.set_xlabel(selected_variable1)
+                ax.set_ylabel("Count")
+                ax.legend(title = nom_colonne ,labels=counts_df2.columns[1:], loc='best')
+
+                ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True, nbins=10))
+                plt.xticks(rotation=90)
+                st.pyplot(fig)
+
+            if tabs == "Courbe sans marques":
+                selected_variable1 = st.sidebar.selectbox("Choisissez une variable x :", data.columns)
+                selected_variable2 = st.sidebar.selectbox("Choisissez une variable y :", data.columns)
+                selected_elements = st.sidebar.multiselect("Selectionnez les modalités à afficher :", data[selected_variable2].unique())
+
+                filtered_data = data[data[selected_variable2].isin(selected_elements)]
+                nom_colonne = selected_variable2
+                st.write("Courbe sans marques :")
+
+                fig, ax = plt.subplots()
+
+                counts_df = filtered_data.groupby([nom_colonne , selected_variable1]).size().unstack().fillna(0).astype(int)
+                counts_df2 = counts_df.T.reset_index()
+
+                ax.plot(counts_df2[selected_variable1], counts_df2.iloc[:,1:])
+                ax.set_xlabel(selected_variable1)
+                ax.set_ylabel("Count")
+                ax.legend(title = nom_colonne ,labels=counts_df2.columns[1:], loc='best')
+
+                ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True, nbins=10))
+                plt.xticks(rotation=90)
+                st.pyplot(fig)
+
+            if tabs == "Histogramme empilé 100%":
+                selected_variable = st.sidebar.selectbox("Choisissez une variable x :", data.columns)
+                selected_variable2 = st.sidebar.selectbox("Choisissez une variable y :", data.columns)
+                selected_elements = st.sidebar.multiselect("Selectionnez les modalités à afficher :", data[selected_variable2].unique())
+
+                filtered_data = data[data[selected_variable2].isin(selected_elements)]
+                nom_colonne = selected_variable2
+                bins = st.sidebar.slider("Number of bins :", 5, 100, 20)
+                st.write("Histogramme empilé 100% :")
+                fig, ax = plt.subplots()
+                sns.histplot(filtered_data, x=selected_variable, hue = nom_colonne , multiple='fill',bins=bins, ax=ax)
+                for rect in ax.patches:
+                    height = rect.get_height()
+                    if height > 0:
+                        ax.annotate(f"{height*100:.0f}%", xy=(rect.get_x() + rect.get_width() / 2, height),
+                        xytext=(0, 5), textcoords="offset points", ha="center", va="bottom")
+                ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True, nbins=10))
+
+                ax.set_ylabel('Pourcentage (%)')
+                vals = ax.get_yticks()
+                ax.set_yticklabels(['{:,.0%}'.format(x) for x in vals])
+                legend_labels = filtered_data[nom_colonne].unique()
+                ax.legend(title=nom_colonne, labels=legend_labels)
+                st.pyplot(fig)
+
 
         elif selected_plot == "Scatter plot":
             x_axis = st.sidebar.selectbox("Choisissez l'axe x :", data.columns)
@@ -191,7 +303,7 @@ def var_ab_nan(data):
     st.sidebar.header("Visualisations")
 
     # st.header("Importez un fichier CSV")
-    data_file = "chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
+    data_file = "C:/Users/gilbe/OneDrive/Bureau/chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
     # data_file = st.file_uploader("Fichier CSV", type=["csv"])
 
     if data_file is not None:
@@ -369,7 +481,7 @@ def var_ab_nan(data):
     
 def var_ab_nan2(data):
 
-    data_file = "chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
+    data_file = "C:/Users/gilbe/OneDrive/Bureau/chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
     
     if data_file is not None:
         data = pd.read_excel(data_file,sheet_name="Sheet1")
@@ -437,7 +549,7 @@ def var_interet(data):
     st.sidebar.header("Visualisations")
 
     # st.header("Importez un fichier CSV")
-    data_file = "chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
+    data_file = "C:/Users/gilbe/OneDrive/Bureau/chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
     # data_file = st.file_uploader("Fichier CSV", type=["csv"])
 
     if data_file is not None:
@@ -445,6 +557,7 @@ def var_interet(data):
         # data = pd.DataFrame(records, columns=keys)
         st.write("Vue d’ensemble des données :")
         st.write(data)
+        
 
         plot_options = ["Histogramme empilé","Histogramme groupé","Courbe sans marques","Courbe avec marques","Histogramme empilé 100%"]
         selected_plot = st.sidebar.selectbox("Choisissez un type de graphe :", plot_options)
@@ -456,16 +569,17 @@ def var_interet(data):
 
                 filtered_data = data[data['gravite'].isin(selected_elements)]
                 
-                bins = st.sidebar.slider("Number of bins", 5, 100, 20)
+                bins = st.sidebar.slider("Number of bins :", 5, 100, 20)
                 st.write("Histogramme empilé :")
                 fig, ax = plt.subplots()
-                sns.histplot(filtered_data, x=selected_variable, hue='gravite', bins=bins, multiple='stack', ax=ax)
+                sns.histplot(filtered_data, x=selected_variable, hue='gravite', bins=bins, ax=ax)
                 for rect in ax.patches:
                         height = rect.get_height()
                         if height > 0:
                             ax.annotate(f"{height:.0f}", xy=(rect.get_x() + rect.get_width() / 2, height),
                             xytext=(0, 5), textcoords="offset points", ha="center", va="bottom")
-                            ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True, nbins=10))
+                ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True, nbins=10))
+                plt.xticks(rotation=90)
                 st.pyplot(fig)
 
 
@@ -475,53 +589,67 @@ def var_interet(data):
                 selected_elements = st.sidebar.multiselect("Selectionnez les modalités à afficher :", data['gravite'].unique())
 
                 filtered_data = data[data['gravite'].isin(selected_elements)]
-
+                
+                bins = st.sidebar.slider("Number of bins :", 5, 100, 20)
                 st.write("Histogramme groupé :")
                 fig, ax = plt.subplots()
-                sns.countplot(x=selected_variable, hue='gravite', data=filtered_data, ax=ax)
+                sns.histplot(x=selected_variable, hue='gravite', data=filtered_data,bins=bins, ax=ax,multiple='dodge')
                 for rect in ax.patches:
                     height = rect.get_height()
                     if height > 0:
                         ax.annotate(f"{height:.0f}", xy=(rect.get_x() + rect.get_width() / 2, height),
                         xytext=(0, 5), textcoords="offset points", ha="center", va="bottom")
-                # ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
-                plt.xticks(rotation=45)
+                ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True, nbins=10))
+                plt.xticks(rotation=90)
                 ax.set_xlabel(selected_variable)
-                ax.set_ylabel("Count")
-                ax.legend(title='gravite')
                 st.pyplot(fig)
+
 
         elif selected_plot == "Courbe avec marques":
 
-                selected_variable = st.sidebar.selectbox("Choisissez une variable :", data.columns)
+                selected_variable1 = st.sidebar.selectbox("Choisissez une variable :", data.columns)
                 selected_elements = st.sidebar.multiselect("Selectionnez les modalités à afficher :", data['gravite'].unique())
 
                 filtered_data = data[data['gravite'].isin(selected_elements)]
 
                 st.write("Courbe avec marques :")
                 fig, ax = plt.subplots()
-                for element in selected_elements:
-                    sns.kdeplot(filtered_data[filtered_data['gravite'] == element][selected_variable], ax=ax, label=element, marker='+')
+
+                counts_df = filtered_data.groupby(['gravite', selected_variable1]).size().unstack().fillna(0).astype(int)
+                counts_df2 = counts_df.T.reset_index()
+
+                ax.plot(counts_df2[selected_variable1], counts_df2.iloc[:,1:], marker='o')
+                ax.set_xlabel(selected_variable1)
+                ax.set_ylabel("Count")
+                ax.legend(title = 'gravite',labels=counts_df2.columns[1:], loc='best')
+
                 ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True, nbins=10))
-                legend_labels = filtered_data['gravite'].unique()
-                ax.legend(title='gravite', labels=legend_labels)
+                plt.xticks(rotation=90)
                 st.pyplot(fig)
 
+                
         elif selected_plot == "Courbe sans marques":
 
-                selected_variable = st.sidebar.selectbox("Choisissez une variable :", data.columns)
+                selected_variable1 = st.sidebar.selectbox("Choisissez une variable :", data.columns)
                 selected_elements = st.sidebar.multiselect("Selectionnez les modalités à afficher :", data['gravite'].unique())
 
                 filtered_data = data[data['gravite'].isin(selected_elements)]
 
                 st.write("Courbe sans marques :")
                 fig, ax = plt.subplots()
-                for element in selected_elements:
-                    sns.kdeplot(filtered_data[filtered_data['gravite'] == element][selected_variable], ax=ax, label=element, marker='')
+
+                counts_df = filtered_data.groupby(['gravite', selected_variable1]).size().unstack().fillna(0).astype(int)
+                counts_df2 = counts_df.T.reset_index()
+
+                ax.plot(counts_df2[selected_variable1], counts_df2.iloc[:,1:])
+                ax.set_xlabel(selected_variable1)
+                ax.set_ylabel("Count")
+                ax.legend(title = 'gravite',labels=counts_df2.columns[1:], loc='best')
+
                 ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True, nbins=10))
-                legend_labels = filtered_data['gravite'].unique()
-                ax.legend(title='gravite', labels=legend_labels)
+                plt.xticks(rotation=90)
                 st.pyplot(fig)
+
 
         elif selected_plot == "Histogramme empilé 100%":
 
@@ -530,7 +658,7 @@ def var_interet(data):
 
                 filtered_data = data[data['gravite'].isin(selected_elements)]
 
-                bins = st.sidebar.slider("Number of bins", 5, 100, 20)
+                bins = st.sidebar.slider("Number of bins :", 5, 100, 20)
                 st.write("Histogramme empilé 100% :")
                 fig, ax = plt.subplots()
                 sns.histplot(filtered_data, x=selected_variable, hue='gravite', multiple='fill', bins=bins, ax=ax)
@@ -1378,7 +1506,7 @@ def model(data):
 
 def corr_mtx(data) :
     # st.header("Importez un fichier EXCEL :")
-    # data_file = "chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
+    # data_file = "C:/Users/gilbe/OneDrive/Bureau/chagpt-coding-main/chagpt-coding-main/streamlit-eda-ml/dfa.xlsx"
     data_file = st.file_uploader("Fichier EXCEL", type=["xlsx"])
 
     if data_file is not None:
